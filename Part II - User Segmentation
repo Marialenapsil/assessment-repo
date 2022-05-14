@@ -1,7 +1,7 @@
 ---findFrequency & Monetary---
 with fm as (
 select distinct user_id,
-                city,    ---creates dublicates per customer, but it would be useful to know from which city orders more breakfast
+                city,    ---creates dublicates per customer, but it would be useful to know from which city the customer orders more breakfast
                 max(date(order_timestamp)) as last_purchase_date,
                 count(distinct order_id)   as frequency,
                 sum(amount)                as monetary 
