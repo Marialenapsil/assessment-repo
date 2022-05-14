@@ -1,0 +1,79 @@
+-----Query #1-----
+
+----orders per city----
+with cities as (
+select distinct city
+      ,count(order_id) as Orders
+from `efood2022-350017.main_assessment.orders`
+group by 1
+)
+
+----breakfast orders per city---
+, breakfast as (
+select distinct city
+      ,sum(amount)/count(order_id)             as breakfast_basket
+      ,count(order_id)/count(distinct user_id) as breakfast_freq
+from `efood2022-350017.main_assessment.orders`
+where cuisine = 'Breakfast'
+group by 1
+)
+
+----breakfast users----
+, breakfastusers as (
+select distinct user_id
+from `efood2022-350017.main_assessment.orders`
+where cuisine = 'Breakfast'
+)
+
+----breakfast users with > 3 orders----
+, br_users3freq as (
+select distinct user_id
+              , count(order_id) as orders
+from `efood2022-350017.main_assessment.orders`
+where cuisine = 'Breakfast'
+group by 1
+having orders > 3
+)
+
+
+---- all users with > 3 orders----
+, users3freq as (
+select distinct user_id
+              , count(order_id) as orders
+from `efood2022-350017.main_assessment.orders`
+group by 1
+having orders > 3
+)
+
+----main dataset----
+,main_dataset as(
+select distinct a.city 
+               ,round(c.breakfast_basket,2)                                   as breakfast_basket
+               ,round(sum(a.amount)/b.orders,2)                               as efood_basket
+               ,round(c.breakfast_freq,2)                                     as breakfast_freq
+               ,round(count(order_id)/count(distinct a.user_id),2)            as efood_freq
+               ,concat(round((count(distinct d.user_id)/count(distinct u.user_id))*100) ,'%')  as brkfst_users3freq
+               ,concat(round((count(distinct al.user_id)/count(distinct a.user_id))*100),'%')  as efood_users3freq
+               ,count(case when cuisine = 'Breakfast' then a.order_id end)    as breakfast_orders
+from`efood2022-350017.main_assessment.orders`  a
+left join cities         b 
+       on a.city = b.city
+left join breakfast      c
+       on a.city=c.city
+left join breakfastusers u
+       on a.user_id = u.user_id
+left join br_users3freq  d
+       on u.user_id=d.user_id
+left join users3freq     al
+       on a.user_id=al.user_id
+where     b.orders > 1000
+group by  a.city, c.breakfast_basket,c.breakfast_freq,b.orders
+order by  breakfast_orders desc 
+)
+
+select d.* 
+from main_dataset       d
+limit 5
+
+
+
