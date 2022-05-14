@@ -1,0 +1,37 @@
+-------Query 2-------
+
+----orders per user----
+with ordersperuser as(
+select distinct user_id
+      ,count(distinct order_id) as orders
+      ,city
+from `efood2022-350017.main_assessment.orders`
+group by 1,3
+order by city,orders desc
+)
+
+----ranking users per city----
+, ranking as(
+select city
+      , user_id
+      , orders 
+      ,row_number() over(partition by city order by orders desc) as Rownum
+from ordersperuser
+)
+
+----orders of top 10 users per city----
+, top10userorders as (
+select distinct city
+              ,sum (orders) as orders_of_top10
+from ranking
+where rownum in (1,2,3,4,5,6,7,8,9,10)
+group by 1
+)
+
+----contribution of top 10 users to total orders per city----
+select distinct a.city
+       ,concat(round((orders_of_top10 / sum(a.orders)*100)),'%') as Contribution_of_top10_perc
+from ordersperuser a
+inner join top10userorders b
+        on a.city=b.city
+group by a.city, orders_of_top10
