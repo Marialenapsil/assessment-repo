@@ -1,4 +1,4 @@
----find Frequency & Monetary---
+---findFrequency & Monetary---
 with fm as (
 select distinct user_id,
                 city,    ---creates dublicates per customer, but it would be useful to know from which city orders more breakfast
@@ -60,7 +60,10 @@ from (
 
 ---- create segments----
  ,segments as (
-select distinct user_id, 
+select distinct user_id,
+                last_purchase_date,
+                frequency,
+                monetary, 
                 city,
                 case when fm_score = 5 then 'Breakfast Lover'
                      when fm_score = 4 then 'Breakfast Loyal' 
