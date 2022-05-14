@@ -1,4 +1,4 @@
----findFrequency & Monetary---
+---find Frequency & Monetary---
 with fm as (
 select distinct user_id,
                 city,    ---creates dublicates per customer, but it would be useful to know from which city the customer orders more breakfast
@@ -10,7 +10,7 @@ select distinct user_id,
                 group by user_id, city
 )
 
-----group customers into quintiles---- 
+----group customers into quantiles---- 
 ,perc as (
 select 
     a.*,
@@ -70,7 +70,7 @@ select distinct user_id,
                      when fm_score = 3 then 'Breakfast Enthusiast'
                      when fm_score = 2 then 'Breakfast Trier'
                      when fm_score = 1 then 'Breakfast Hibernate'
-                     end  as fm_segment
+                 end as fm_segment
 
 from scores
 )
