@@ -1,0 +1,76 @@
+---find Frequency & Monetary---
+with fm as (
+select distinct user_id,
+                city,    ---creates dublicates per customer, but it would be useful to know from which city orders more breakfast
+                max(date(order_timestamp)) as last_purchase_date,
+                count(distinct order_id)   as frequency,
+                sum(amount)                as monetary 
+                from  `efood2022-350017.main_assessment.orders`
+                where cuisine = 'Breakfast'
+                group by user_id, city
+)
+
+----group customers into quintiles---- 
+,perc as (
+select 
+    a.*,
+    --All percentiles for MONETARY
+    b.percentiles[offset(20)]  as m20, 
+    b.percentiles[offset(40)]  as m40,
+    b.percentiles[offset(60)]  as m60, 
+    b.percentiles[offset(80)]  as m80,
+    b.percentiles[offset(100)] as m100,    
+    --All percentiles for FREQUENCY
+    c.percentiles[offset(20)]  as f20, 
+    c.percentiles[offset(40)]  as f40,
+    c.percentiles[offset(60)]  as f60, 
+    c.percentiles[offset(80)]  as f80,
+    c.percentiles[offset(100)] as f100,    
+from 
+    fm a,
+    (select approx_quantiles(monetary, 100)  percentiles
+    from fm) b,
+    (select approx_quantiles(frequency, 100) percentiles 
+    from fm) c
+)
+
+
+
+---assign scores for each metric----
+,scores as (
+select *, 
+cast(round((f_score + m_score) / 2, 0) as INT64) as fm_score
+from (
+      select *, 
+        case when monetary <= m20  then 1
+             when monetary <= m40  and monetary > m20 then 2 
+             when monetary <= m60  and monetary > m40 then 3 
+             when monetary <= m80  and monetary > m60 then 4 
+             when monetary <= m100 and monetary > m80 then 5
+        end as m_score,
+        case when frequency <= f20  then 1
+             when frequency <= f40  and frequency > f20 then 2 
+             when frequency <= f60  and frequency > f40 then 3 
+             when frequency <= f80  and frequency > f60 then 4 
+             when frequency <= f100 and frequency > f80 then 5
+        end as f_score
+        from perc
+        )
+)
+
+---- create segments----
+ ,segments as (
+select distinct user_id, 
+                city,
+                case when fm_score = 5 then 'Breakfast Lover'
+                     when fm_score = 4 then 'Breakfast Loyal' 
+                     when fm_score = 3 then 'Breakfast Enthusiast'
+                     when fm_score = 2 then 'Breakfast Trier'
+                     when fm_score = 1 then 'Breakfast Hibernate'
+                     end  as fm_segment
+
+from scores
+)
+
+
+select*from segments
